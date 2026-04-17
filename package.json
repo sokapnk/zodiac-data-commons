@@ -9,12 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^15.2.3",
+    "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "yjs": "^13.6.17",
     "y-indexeddb": "^9.0.12",
-    "@vercel/postgres": "^0.1.0",
+    "@neondatabase/serverless": "^1.0.2",
     "yaml": "^2.7.0"
   },
   "devDependencies": {
