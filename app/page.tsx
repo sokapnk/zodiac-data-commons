@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import { IndexedDBProvider } from 'y-indexeddb';
+import { IndexeddbPersistence } from 'y-indexeddb';   // ← This was the fix
 import * as yaml from 'yaml';
 
 const ZODIAC_SIGNS = [
@@ -18,7 +18,7 @@ export default function Home() {
 
   const docRef = useRef<Y.Doc | null>(null);
   const arrayRef = useRef<Y.Array<Y.Map<any>> | null>(null);
-  const providerRef = useRef<IndexedDBProvider | null>(null);
+  const providerRef = useRef<IndexeddbPersistence | null>(null);   // ← Updated type
 
   const updateUI = () => {
     if (!arrayRef.current) return;
@@ -40,7 +40,6 @@ export default function Home() {
         const update = base64ToUint8(data.state);
         Y.applyUpdate(doc, update);
       }
-      // save last sync vector
       const vector = Y.encodeStateVector(doc);
       localStorage.setItem('zodiac-last-vector', uint8ToBase64(vector));
     } catch (e) {
@@ -68,7 +67,6 @@ export default function Home() {
         body: JSON.stringify({ update: base64Update }),
       });
 
-      // update last sync vector
       const newVector = Y.encodeStateVector(doc);
       localStorage.setItem('zodiac-last-vector', uint8ToBase64(newVector));
     } catch (e) {
@@ -83,7 +81,8 @@ export default function Home() {
     const yArray = doc.getArray<Y.Map<any>>('entries');
     arrayRef.current = yArray;
 
-    const provider = new IndexedDBProvider('zodiac-commons', doc);
+    // Correct provider (this was the only change needed)
+    const provider = new IndexeddbPersistence('zodiac-commons', doc);
     providerRef.current = provider;
 
     provider.whenSynced.then(() => {
