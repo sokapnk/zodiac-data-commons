@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';   // ← This was the fix
+import { IndexeddbPersistence } from 'y-indexeddb';
 import * as yaml from 'yaml';
 
 const ZODIAC_SIGNS = [
@@ -18,7 +18,7 @@ export default function Home() {
 
   const docRef = useRef<Y.Doc | null>(null);
   const arrayRef = useRef<Y.Array<Y.Map<any>> | null>(null);
-  const providerRef = useRef<IndexeddbPersistence | null>(null);   // ← Updated type
+  const providerRef = useRef<IndexeddbPersistence | null>(null);
 
   const updateUI = () => {
     if (!arrayRef.current) return;
@@ -32,6 +32,7 @@ export default function Home() {
   const uint8ToBase64 = (arr: Uint8Array) => btoa(String.fromCharCode(...arr));
   const base64ToUint8 = (b64: string) => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 
+  // Simplified: always fetch full state from Neon
   const syncWithServer = async (doc: Y.Doc) => {
     try {
       const res = await fetch('/api/sync');
@@ -40,25 +41,15 @@ export default function Home() {
         const update = base64ToUint8(data.state);
         Y.applyUpdate(doc, update);
       }
-      const vector = Y.encodeStateVector(doc);
-      localStorage.setItem('zodiac-last-vector', uint8ToBase64(vector));
     } catch (e) {
       console.error('Sync failed', e);
     }
   };
 
+  // Simplified: always push full state (tiny list = no performance issue)
   const pushChanges = async (doc: Y.Doc) => {
     try {
-      let update: Uint8Array;
-      const lastVectorB64 = localStorage.getItem('zodiac-last-vector');
-
-      if (lastVectorB64) {
-        const lastVector = base64ToUint8(lastVectorB64);
-        update = Y.encodeStateAsUpdate(doc, lastVector);
-      } else {
-        update = Y.encodeStateAsUpdate(doc);
-      }
-
+      const update = Y.encodeStateAsUpdate(doc);
       const base64Update = uint8ToBase64(update);
 
       await fetch('/api/sync', {
@@ -66,9 +57,6 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ update: base64Update }),
       });
-
-      const newVector = Y.encodeStateVector(doc);
-      localStorage.setItem('zodiac-last-vector', uint8ToBase64(newVector));
     } catch (e) {
       console.error('Push failed', e);
     }
@@ -81,7 +69,6 @@ export default function Home() {
     const yArray = doc.getArray<Y.Map<any>>('entries');
     arrayRef.current = yArray;
 
-    // Correct provider (this was the only change needed)
     const provider = new IndexeddbPersistence('zodiac-commons', doc);
     providerRef.current = provider;
 
@@ -192,7 +179,7 @@ export default function Home() {
       </div>
 
       <p className="text-center text-xs text-zinc-500">
-        Powered by Yjs + Vercel Postgres • Changes sync when you open the page
+        Powered by Yjs + Neon Postgres • Changes sync when you open the page
       </p>
     </div>
   );
